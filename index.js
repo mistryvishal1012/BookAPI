@@ -8,7 +8,7 @@ const errorHandler = require('./middleware/errorHandler');
 const jwt = require("jsonwebtoken");
 
 const app = express();
-const server = app.listen(5000,console.log("Listening On Port 5000"));
+const server = app.listen(8000,console.log("Listening On Port 8000"));
 
 app.use(cors({
     origin : ["http://localhost:3000"],

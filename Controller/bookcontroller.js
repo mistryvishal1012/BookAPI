@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const Book = require('../Model/BookModel');
+const Book = require('../Model/BookModel'); 
 const ObjectIDMiddleWare = require('../middleware/objectIDMidleware');
 const cookieMidleware = require('../middleware/cookieMiddleware');
+const bookIDMiddleware = require('../middleware/bookMiddleware');
 const UserModel = require('../Model/UserModel');
 const BookModel = require('../Model/BookModel');
 
@@ -139,7 +140,7 @@ router.get('/', cookieMidleware ,async(req,res) => {
     }
 });
 
-router.get('/:id',[cookieMidleware ,ObjectIDMiddleWare],async(req,res) => {
+router.get('/:id',[cookieMidleware ,ObjectIDMiddleWare,bookIDMiddleware],async(req,res) => {
     const book = await Book.findById(req.params.id);
     if(!book){
         res.status(404).json(`Resource With Given ${req.params.id} do not found.`);
@@ -163,15 +164,19 @@ router.post('/',cookieMidleware,async (req,res) => {
        categories : req.body.categories
    });
    try{
+       console.log(req.user);
        const book = bookToInsert.save();
-       const user = await UserModel.findByIdAndUpdate(req.user._id,{
+       const user = await UserModel.findOneAndUpdate({
+        id : req.user._id
+       },{
            $inc : { 'totalBook' : +1 },
            $push : { 'book' : bookToInsert._id }
        })
+       console.log(user);
        res.status(200).json(bookToInsert);
    }catch(err){
        const bookToDelete = await BookModel.findByIdAndDelete(bookToInsert._id);
-       const userToUpdate = await UserModel.findByIdAndUpdate({
+       const userToUpdate = await UserModel.findOneAndUpdate({
         id : req.user._id },{
             $inc : { totalBook : -1 },
             $pull : { 'book' : req.params.id }
@@ -180,13 +185,13 @@ router.post('/',cookieMidleware,async (req,res) => {
    }
 });
 
-router.delete('/:id',[cookieMidleware ,ObjectIDMiddleWare],async (req,res) => {
+router.delete('/:id',[cookieMidleware ,ObjectIDMiddleWare,bookIDMiddleware],async (req,res) => {
     const book = await Book.findById(req.params.id);
     if(!book){
         return res.status(404).json(`Resource With Given ${req.params.id} do not found.`);
     }
     try{
-        const bookToDeleteFromUser = await UserModel.updateOne({
+        const bookToDeleteFromUser = await UserModel.findOneAndUpdate({
             id : req.user._id },{
                 $inc : { totalBook : -1 },
                 $pull : { 'book' : req.params.id }
@@ -195,7 +200,7 @@ router.delete('/:id',[cookieMidleware ,ObjectIDMiddleWare],async (req,res) => {
         const bookDeleted = await BookModel.findByIdAndDelete(req.params.id);
         res.status(200).json(`Course With Id ${req.params.id} is Deleted`)
     }catch(err){
-        const bookToDeleteFromUser = await UserModel.updateOne({
+        const bookToDeleteFromUser = await UserModel.findOneAndUpdate({
             id : req.user._id },{
                 $inc : { totalBook : +1 },
                 $pull : { 'book' : book._id }
@@ -206,14 +211,9 @@ router.delete('/:id',[cookieMidleware ,ObjectIDMiddleWare],async (req,res) => {
     }  
 });
 
-router.put('/:id',[cookieMidleware ,ObjectIDMiddleWare],async (req,res) => {
+router.put('/:id',[cookieMidleware ,ObjectIDMiddleWare,bookIDMiddleware],async (req,res) => {
     const book = await Book.findById(req.params.id);
-    if(!book){
-        res.status(404).json(`Resource With Given ${req.params.id} do not found.`);
-    }else{
-        book.learningCompleted = req.body.Stage;
-        res.status(200).json(book);
-    }
+   
     try{
         const bookToUpdate = await Book.findByIdAndUpdate(req.params.id,req.body)
         res.status(200).json(`Course With Id ${req.params.id} is Updated`)
@@ -223,5 +223,27 @@ router.put('/:id',[cookieMidleware ,ObjectIDMiddleWare],async (req,res) => {
     }
     
 });
+
+router.put('/:id/learningStage',[cookieMidleware ,ObjectIDMiddleWare,bookIDMiddleware],async (req,res) => {
+    const book = await Book.findById(req.params.id);
+       if(!book){
+        res.status(404).json(`Resource With Given ${req.params.id} do not found.`);
+    }else{
+        book.learningCompleted = req.body.Stage;
+        res.status(200).json(book);
+    }
+});
+
+router.put('/:id/pagesCompleted',[cookieMidleware ,ObjectIDMiddleWare,bookIDMiddleware],async (req,res) => {
+    const book = await Book.findById(req.params.id);
+       if(!book){
+        res.status(404).json(`Resource With Given ${req.params.id} do not found.`);
+    }else{
+        book.pagesCompleted = req.body.pagesCompleted;
+        res.status(200).json(book);
+    }
+});
+
+
 
 module.exports = router;

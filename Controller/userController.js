@@ -86,12 +86,14 @@ router.post('/register', async(req,res)=>{
         forgetPasswordQuestion : req.body.forgotPasswordQuestion,
         forgetPasswordAnswer : req.body.forgotPasswordAnswer
     });
+    console.log(authUser)
     try {
         const result = await authUser.save()
         res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
         res.setHeader('Access-Control-Allow-Credentials',true);                 
         return res.status(200).json(`Registered`);
     } catch (error) {
+        console.log(error);
         return res.status(500).json({
             'message' : 'Server Error'
         })
